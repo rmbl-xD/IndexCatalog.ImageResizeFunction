@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
@@ -12,34 +13,57 @@ public class ImageResizeTrigger
 {
     private readonly BlobServiceClient _blobServiceClient;
     private readonly ILogger _log;
+    private const string UploadFolderName = "images";
 
-    public ImageResizeTrigger(BlobServiceClient blobServiceClient, ILogger log)
+    private static readonly List<Tuple<int, int>> ResolutionList = new ()
+    {
+        new (1920, 1080),
+        new (1024,768),
+        new (800,600),
+        new (512,384),
+        new (384,216)
+    };
+
+
+    public ImageResizeTrigger(BlobServiceClient blobServiceClient, ILoggerFactory log)
     {
         _blobServiceClient = blobServiceClient;
-        _log = log;
+        _log = log.CreateLogger<ImageResizeTrigger>();
     }
 
     [FunctionName("ImageResizeTrigger")]
-    public async Task RunAsync([BlobTrigger("images/{name}")] Stream blob, string name)
+    public async Task RunAsync([BlobTrigger("images/original-{name}")] Stream blob, string name)
     {
         _log.LogInformation($"C# Blob trigger function Processed blob\n Name:{name} \n Size: {blob.Length} Bytes");
-        
+
+        var fileExtension = Path.GetExtension(name);
+        var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(name);
+      
         //is valid guid as name
-        //iterator image resize sizes from configuration
-        //resize image 
-        //upload image to storage with ending "[Guid]-[width]-[height].[extension]"
+        if (Guid.TryParse(fileNameWithoutExtension, out _))
+        {
+            foreach (var resolution in ResolutionList)
+            {
+                blob.Position = 0;
+                var (width, height) = resolution;
+                var resizedImage = GetResizedImage(blob, width , height);
 
-
-        var resizedImage = GetResizedImage(blob);
-        await UploadImage(resizedImage);
+                //upload image to storage with ending "[Guid]-[width]-[height].[extension]"
+                if (resizedImage.Length != 0)
+                {
+                    await UploadImage(resizedImage, $"{fileNameWithoutExtension}.{width}-{height}", fileExtension);
+                }
+               
+            }
+        }
     }
     
-    private byte[] GetResizedImage(Stream myBlob)
+    private byte[] GetResizedImage(Stream myBlob, int width, int height)
     {
         try
         {
             using var image = new MagickImage(myBlob);
-            var size = new MagickGeometry(100, 100)
+            var size = new MagickGeometry(width, height)
             {
                 IgnoreAspectRatio = false
             };
@@ -55,12 +79,13 @@ public class ImageResizeTrigger
         return Array.Empty<byte>();
     }
      
-    private async Task UploadImage(byte[] resizedImage)
+    private async Task UploadImage(byte[] resizedImage, string name, string fileExtension)
     {
         try
         {
-            var container = _blobServiceClient.GetBlobContainerClient("images");
-            var blobInstance = container.GetBlobClient("test1kleiner.png");
+            var container = _blobServiceClient.GetBlobContainerClient(UploadFolderName);
+            var blobInstance = container.GetBlobClient($"{name}{fileExtension}");
+           
             using var stream = new MemoryStream(resizedImage);
             await blobInstance.UploadAsync(stream);
         }

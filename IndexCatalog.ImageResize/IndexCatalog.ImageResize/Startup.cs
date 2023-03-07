@@ -12,5 +12,6 @@ public class Startup : FunctionsStartup
     {
         var blobString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
         builder.Services.AddScoped(_ => new BlobServiceClient(blobString));
+        builder.Services.AddLogging();
     }
 }
