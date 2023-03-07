@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "IndexCatalog.ImageResize": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7269",
+      "launchBrowser": false
+    }
+  }
+}
