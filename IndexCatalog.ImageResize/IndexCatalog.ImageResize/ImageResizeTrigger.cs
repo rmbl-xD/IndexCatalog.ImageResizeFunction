@@ -11,22 +11,30 @@ namespace IndexCatalog.ImageResize;
 public class ImageResizeTrigger
 {
     private readonly BlobServiceClient _blobServiceClient;
+    private readonly ILogger _log;
 
-    public ImageResizeTrigger(BlobServiceClient blobServiceClient)
+    public ImageResizeTrigger(BlobServiceClient blobServiceClient, ILogger log)
     {
         _blobServiceClient = blobServiceClient;
+        _log = log;
     }
 
     [FunctionName("ImageResizeTrigger")]
-    public async Task RunAsync([BlobTrigger("images/{name}")] Stream blob, string name, ILogger log)
+    public async Task RunAsync([BlobTrigger("images/{name}")] Stream blob, string name)
     {
-        log.LogInformation($"C# Blob trigger function Processed blob\n Name:{name} \n Size: {blob.Length} Bytes");
+        _log.LogInformation($"C# Blob trigger function Processed blob\n Name:{name} \n Size: {blob.Length} Bytes");
         
-        var resizedImage = GetResizedImage(blob, log);
-        await UploadImage(log, resizedImage);
+        //is valid guid as name
+        //iterator image resize sizes from configuration
+        //resize image 
+        //upload image to storage with ending "[Guid]-[width]-[height].[extension]"
+
+
+        var resizedImage = GetResizedImage(blob);
+        await UploadImage(resizedImage);
     }
     
-    private byte[] GetResizedImage(Stream myBlob, ILogger log)
+    private byte[] GetResizedImage(Stream myBlob)
     {
         try
         {
@@ -41,13 +49,13 @@ public class ImageResizeTrigger
         }
         catch (Exception e)
         {
-            log.LogError("Error Resizing Image: " + e.Message);
+            _log.LogError("Error Resizing Image: " + e.Message);
         }
 
         return Array.Empty<byte>();
     }
      
-    private async Task UploadImage(ILogger log, byte[] resizedImage)
+    private async Task UploadImage(byte[] resizedImage)
     {
         try
         {
@@ -58,7 +66,7 @@ public class ImageResizeTrigger
         }
         catch (Exception e)
         {
-            log.LogError("Error Uploading Image: " + e.Message);
+            _log.LogError("Error Uploading Image: " + e.Message);
         }
     }
 }
