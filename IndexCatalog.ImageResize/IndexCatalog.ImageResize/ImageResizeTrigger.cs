@@ -42,7 +42,14 @@ public class ImageResizeTrigger
         foreach (var resolution in resolutionsList)
         {
             var splittedResolution = resolution.Split(',');
-            ResolutionList.Add(new(Int32.Parse(splittedResolution[0]), Int32.Parse(splittedResolution[1])));
+
+            var couldParseWidth = Int32.TryParse(splittedResolution[0], out var width);
+            var couldParseHeight = Int32.TryParse(splittedResolution[1], out var height);
+
+            if (couldParseWidth && couldParseHeight)
+            {
+                ResolutionList.Add(new Tuple<int, int>(width, height));
+            }
         }
     }
 
