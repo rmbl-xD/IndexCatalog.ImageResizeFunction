@@ -24,7 +24,6 @@ public class ImageResizeTrigger
         new (384,216)
     };
 
-
     public ImageResizeTrigger(BlobServiceClient blobServiceClient, ILoggerFactory log)
     {
         _blobServiceClient = blobServiceClient;
@@ -32,9 +31,9 @@ public class ImageResizeTrigger
     }
 
     [FunctionName("ImageResizeTrigger")]
-    public async Task RunAsync([BlobTrigger("images/original-{name}")] Stream blob, string name)
+    public async Task RunAsync([BlobTrigger("images/{subfolder}/original-{name}")] Stream blob, string name, string subfolder)
     {
-        _log.LogInformation($"C# Blob trigger function Processed blob\n Name:{name} \n Size: {blob.Length} Bytes");
+        _log.LogInformation($"C# Blob trigger function Processed blob\n Name:{name} \n in Folder:{subfolder} \n Size: {blob.Length} Bytes");
 
         var fileExtension = Path.GetExtension(name);
         var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(name);
@@ -51,9 +50,8 @@ public class ImageResizeTrigger
                 //upload image to storage with ending "[Guid]-[width]-[height].[extension]"
                 if (resizedImage.Length != 0)
                 {
-                    await UploadImage(resizedImage, $"{fileNameWithoutExtension}.{width}-{height}", fileExtension);
+                    await UploadImage(resizedImage, subfolder ,$"{fileNameWithoutExtension}.{width}-{height}", fileExtension);
                 }
-               
             }
         }
     }
@@ -79,15 +77,15 @@ public class ImageResizeTrigger
         return Array.Empty<byte>();
     }
      
-    private async Task UploadImage(byte[] resizedImage, string name, string fileExtension)
+    private async Task UploadImage(byte[] resizedImage, string subfolder, string name, string fileExtension)
     {
         try
         {
             var container = _blobServiceClient.GetBlobContainerClient(UploadFolderName);
-            var blobInstance = container.GetBlobClient($"{name}{fileExtension}");
+            var blobInstance = container.GetBlobClient($"{subfolder}/{name}{fileExtension}");
            
             using var stream = new MemoryStream(resizedImage);
-            await blobInstance.UploadAsync(stream);
+            var response = await blobInstance.UploadAsync(stream);
         }
         catch (Exception e)
         {
