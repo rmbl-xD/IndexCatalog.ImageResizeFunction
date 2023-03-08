@@ -21,13 +21,29 @@ public class ImageResizeTrigger
         new (1024,768),
         new (800,600),
         new (512,384),
-        new (384,216)
+        new (384,216),
+        new (1,1)
     };
 
     public ImageResizeTrigger(BlobServiceClient blobServiceClient, ILoggerFactory log)
     {
+        TryGetResolutionsFromConfig();
         _blobServiceClient = blobServiceClient;
         _log = log.CreateLogger<ImageResizeTrigger>();
+    }
+
+    private static void TryGetResolutionsFromConfig()
+    {
+        var resolutions = Environment.GetEnvironmentVariable("ResizeResolutions");
+        if (string.IsNullOrEmpty(resolutions)) return;
+        
+        ResolutionList.Clear();
+        var resolutionsList = resolutions.Split(';');
+        foreach (var resolution in resolutionsList)
+        {
+            var splittedResolution = resolution.Split(',');
+            ResolutionList.Add(new(Int32.Parse(splittedResolution[0]), Int32.Parse(splittedResolution[1])));
+        }
     }
 
     [FunctionName("ImageResizeTrigger")]
