@@ -10,8 +10,6 @@ public class Startup : FunctionsStartup
 {
     public override void Configure(IFunctionsHostBuilder builder)
     {
-        var blobString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
-        builder.Services.AddScoped(_ => new BlobServiceClient(blobString));
         builder.Services.AddLogging();
     }
 }
