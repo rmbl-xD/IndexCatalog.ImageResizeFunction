@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection.Metadata;
 using System.Threading.Tasks;
-using Azure.Storage.Blobs;
 using ImageMagick;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
@@ -12,7 +10,6 @@ namespace IndexCatalog.ImageResize;
 
 public class ImageResizeTrigger
 {
-    private readonly BlobServiceClient _blobServiceClient;
     private readonly ILogger _log;
     private const string UploadFolderName = "images";
 
