@@ -17,19 +17,15 @@ public class ImageResizeTrigger
 
     private static readonly List<Tuple<int, int>> ResolutionList = new ()
     {
-        new (1920, 1080),
-        new (1024,768),
-        new (800,600),
-        new (512,384),
-        new (384,216),
-        new (1,1)
+        new (512,384)
     };
 
     public ImageResizeTrigger(BlobServiceClient blobServiceClient, ILoggerFactory log)
     {
-        TryGetResolutionsFromConfig();
         _blobServiceClient = blobServiceClient;
         _log = log.CreateLogger<ImageResizeTrigger>();
+        
+        TryGetResolutionsFromConfig();
     }
 
     private static void TryGetResolutionsFromConfig()
