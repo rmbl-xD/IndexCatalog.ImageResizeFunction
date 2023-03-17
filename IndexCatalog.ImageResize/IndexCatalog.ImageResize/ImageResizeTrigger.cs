@@ -68,14 +68,13 @@ public class ImageResizeTrigger
                 blob.Position = 0;
                 var (width, height) = resolution;
                 var resizedImage = GetResizedImage(blob, width , height);
-                
-                
+        
                 if (resizedImage.Length == 0) continue;
 
                 //upload image to storage with ending "[Guid]-[width]-[height].[extension]"
                 var blobAttribute =
                     new BlobAttribute(
-                        $"{UploadFolderName}/{subfolder}/{fileNameWithoutExtension}.{width}-{height}.{fileExtension}",
+                        $"{UploadFolderName}/{subfolder}/{fileNameWithoutExtension}.{width}-{height}{fileExtension}",
                         FileAccess.Write);
 
                 await using var output = await binder.BindAsync<Stream>(blobAttribute);
