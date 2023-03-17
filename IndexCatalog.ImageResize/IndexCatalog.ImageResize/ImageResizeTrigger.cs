@@ -13,10 +13,7 @@ public class ImageResizeTrigger
     private readonly ILogger _log;
     private const string UploadFolderName = "images";
 
-    private static readonly List<Tuple<int, int>> ResolutionList = new ()
-    {
-        new (512,384)
-    };
+    private static readonly List<Tuple<int, int>> ResolutionList = new () {};
 
     public ImageResizeTrigger(ILoggerFactory log)
     {
@@ -26,17 +23,17 @@ public class ImageResizeTrigger
 
     private static void TryGetResolutionsFromConfig()
     {
-        var resolutions = Environment.GetEnvironmentVariable("ResizeResolutions");
-        if (string.IsNullOrEmpty(resolutions)) return;
+        var resizeResolutions = Environment.GetEnvironmentVariable("ResizeResolutions");
+        if (string.IsNullOrEmpty(resizeResolutions)) return;
         
         ResolutionList.Clear();
-        var resolutionsList = resolutions.Split(';');
+        var resolutionsList = resizeResolutions.Split(';');
         foreach (var resolution in resolutionsList)
         {
-            var splittedResolution = resolution.Split(',');
+            var resolutions = resolution.Split(',');
 
-            var couldParseWidth = Int32.TryParse(splittedResolution[0], out var width);
-            var couldParseHeight = Int32.TryParse(splittedResolution[1], out var height);
+            var couldParseWidth = int.TryParse(resolutions[0], out var width);
+            var couldParseHeight = int.TryParse(resolutions[1], out var height);
 
             if (couldParseWidth && couldParseHeight)
             {
@@ -52,8 +49,14 @@ public class ImageResizeTrigger
         string subfolder,
         Binder binder)
     {
-        _log.LogInformation($"C# Blob trigger function Processed blob\n Name:{name} \n in Folder:{subfolder} \n Size: {blob.Length} Bytes");
-
+        _log.LogInformation($"ImageResizeTrigger function processed blob\n Name: {name} \n in Folder: images/{subfolder} \n Size: {blob.Length} Bytes");
+        
+        if (ResolutionList.Count == 0)
+        {
+            _log.LogInformation($"Output resolution list is not set or empty. Please configure resolution list in appSettings. e.g. \"ResizeResolutions\": \"1920,1080;1024,768;800,600;512,384;384,216\"");
+            return;
+        }
+        
         var fileExtension = Path.GetExtension(name);
         var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(name);
 
@@ -66,15 +69,17 @@ public class ImageResizeTrigger
                 var (width, height) = resolution;
                 var resizedImage = GetResizedImage(blob, width , height);
                 
+                
                 if (resizedImage.Length == 0) continue;
 
                 //upload image to storage with ending "[Guid]-[width]-[height].[extension]"
                 var blobAttribute =
                     new BlobAttribute(
-                        $"images/{subfolder}/{fileNameWithoutExtension}.{width}-{height}.{fileExtension}",
+                        $"{UploadFolderName}/{subfolder}/{fileNameWithoutExtension}.{width}-{height}.{fileExtension}",
                         FileAccess.Write);
 
                 await using var output = await binder.BindAsync<Stream>(blobAttribute);
+                
                 using var stream = new MemoryStream(resizedImage);
                 await stream.CopyToAsync(output);
             }
